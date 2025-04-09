@@ -9,22 +9,23 @@ module DataPath (
     output logic [31:0] instrMemAdder,
     input  logic        regFileWe,
     input  logic [ 3:0] aluControl,
+    input  logic [ 3:0] aluIControl,
     input  logic        aluSrcMuxSel,
-    input logic RAMSrcMuxSel,
-    input logic [31:0] RAMrData,
+    input  logic        RFWDSrcMuxSel,
     output logic [31:0] dataAddr,
-    output logic [31:0] dataWData
+    output logic [31:0] dataAddrI,
+    output logic [31:0] dataWData,
+    input  logic [31:0] dataRData
 );
-    logic [31:0] aluResult, RFData1, RFData2;
+    logic [31:0] aluResult, RFData1, RFData2, aluResultI;
     logic [31:0] PCSrcData, PCOutData;
-    logic [31:0] immExt, aluSrcMuxOut;
-    logic [31:0] rData;
-    logic [31:0] RAMSrcMuxOut;
+    logic [31:0] immExt, aluSrcMuxOut, RFWDSrcMuxOut, aluISrcMuxOut;
 
     assign instrMemAdder = PCOutData;
     assign dataAddr      = aluResult;
+    assign dataAddrI     = aluResultI;
     assign dataWData     = RFData2;
-    assign RAMrData = rData;
+
 
     RegisterFile U_RegFile (
         .clk   (clk),
@@ -32,7 +33,7 @@ module DataPath (
         .RAddr1(instrCode[19:15]),
         .RAddr2(instrCode[24:20]),
         .WAddr (instrCode[11:7]),
-        .WData (aluResult),
+        .WData (RFWDSrcMuxOut),
         .RData1(RFData1),
         .RData2(RFData2)
     );
@@ -49,6 +50,13 @@ module DataPath (
         .a         (RFData1),
         .b         (aluSrcMuxOut),
         .result    (aluResult)
+    );
+
+    alu_I U_ALU_I (
+        .aluIControl(aluIControl),
+        .a          (RFData1),
+        .b          (aluISrcMuxOut),
+        .result     (aluResultI)
     );
 
     extend U_ImmExtend (
@@ -69,12 +77,14 @@ module DataPath (
         .y(PCSrcData)
     );
 
-    mux_2x1 U_RAMSrcMux (
-        .sel(RAMSrcMuxSel),
+    mux_2x1 U_RFWDSrcMux (
+        .sel(RFWDSrcMuxSel),
         .x0 (aluResult),
-        .x1 (rData),
-        .y  (RAMSrcMuxOut)
+        .x1 (dataRData),
+        .y  (RFWDSrcMuxOut)
     );
+
+    mux_2x1 U_
 
 
 endmodule
@@ -98,6 +108,30 @@ module alu (
             `XOR: result = a ^ b;
             `OR: result = a | b;
             `AND: result = a & b;
+            default: result = 32'bx;
+        endcase
+    end
+endmodule
+
+module alu_I (
+    input  logic [ 3:0] aluIControl,
+    input  logic [31:0] a,
+    input  logic [31:0] b,
+    output logic [31:0] result
+);
+
+    always_comb begin
+        case (aluIControl)
+            `ADDI: result = a + b;
+            `SLTI: result = $signed(a) >>> b[4:0];  // [4:0] -> 32표현 가능
+            `SLTI: result = ($signed(a) < $signed(b)) ? 1 : 0;
+            `SLTIU: result = (a < b) ? 1 : 0;
+            `XORI: result = a ^ b;
+            `ORI: result = a | b;
+            `ANDI: result = a & b;
+            `SLLI: result = a << b[0:4];
+            `SRLI: result = a >> b[0:4];
+            `SRAI: result = $signed(a) >>> b[0:4];
             default: result = 32'bx;
         endcase
     end
@@ -175,8 +209,14 @@ module extend (
         immExt = 32'bx;
         case (opcode)
             `OP_TYPE_R: immExt = 32'bx;
-            `OP_TYPE_L: immExt = {{20{instrCode[31]}}, instrCode[31:20]};  // [31]을 20번 반복한다.
-            `OP_TYPE_S: immExt = {{20{instrCode[31]}}, instrCode[31:25], instrCode[11:7]};  // [31]을 20번 반복한다.
+            `OP_TYPE_L:
+            immExt = {
+                {20{instrCode[31]}}, instrCode[31:20]
+            };  // [31]을 20번 반복한다.
+            `OP_TYPE_S:
+            immExt = {
+                {20{instrCode[31]}}, instrCode[31:25], instrCode[11:7]
+            };  // [31]을 20번 반복한다.
             default: immExt = 32'bx;
         endcase
     end
