@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-// ram.sv
+// ram.sv .
 module ram (
     input  logic        clk,
     input  logic        we,
