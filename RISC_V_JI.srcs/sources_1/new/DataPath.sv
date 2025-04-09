@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 `include "defines.sv"
-// DataPath.sv
+// DataPath.sv //mux cnrk 
 module DataPath (
     input  logic        clk,
     input  logic        reset,
@@ -10,16 +10,21 @@ module DataPath (
     input  logic        regFileWe,
     input  logic [ 3:0] aluControl,
     input  logic        aluSrcMuxSel,
+    input logic RAMSrcMuxSel,
+    input logic [31:0] RAMrData,
     output logic [31:0] dataAddr,
     output logic [31:0] dataWData
 );
     logic [31:0] aluResult, RFData1, RFData2;
     logic [31:0] PCSrcData, PCOutData;
     logic [31:0] immExt, aluSrcMuxOut;
+    logic [31:0] rData;
+    logic [31:0] RAMSrcMuxOut;
 
     assign instrMemAdder = PCOutData;
     assign dataAddr      = aluResult;
     assign dataWData     = RFData2;
+    assign RAMrData = rData;
 
     RegisterFile U_RegFile (
         .clk   (clk),
@@ -63,6 +68,14 @@ module DataPath (
         .b(PCOutData),
         .y(PCSrcData)
     );
+
+    mux_2x1 U_RAMSrcMux (
+        .sel(RAMSrcMuxSel),
+        .x0 (aluResult),
+        .x1 (rData),
+        .y  (RAMSrcMuxOut)
+    );
+
 
 endmodule
 

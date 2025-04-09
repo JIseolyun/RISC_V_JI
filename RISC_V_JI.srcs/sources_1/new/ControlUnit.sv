@@ -13,15 +13,16 @@ module ControlUnit (
     wire [3:0] operators = {
         instrCode[30], instrCode[14:12]
     };  // {funct7[5], funct3}
-
+    //regFileWe 읽기 동작할때는 0
     logic [2:0] signals;
-    assign {regFileWe, aluSrcMuxSel, dataWe} = signals;
+    assign {regFileWe, aluSrcMuxSel, dataWe, RAMSrcMuxSel} = signals;
     always_comb begin
-        signals = 3'b0;
+        signals = 4'b0;
         case (opcode)
         // {regFileWe, aluSrcMuxSel, dataWe} = signals;
-            `OP_TYPE_R: signals = 3'b1_0_0;
-            `OP_TYPE_S: signals = 3'b0_1_1;
+            `OP_TYPE_R: signals = 4'b1_0_0_0;
+            `OP_TYPE_S: signals = 4'b0_1_1_0;
+            `OP_TYPE_L: signals = 4'b1_1_0_1;
         endcase
     end
 
