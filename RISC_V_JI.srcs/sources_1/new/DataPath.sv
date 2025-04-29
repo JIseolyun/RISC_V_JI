@@ -84,7 +84,7 @@ module DataPath (
         .y  (RFWDSrcMuxOut)
     );
 
-    mux_2x1 U_
+    mux_2x1 U_;
 
 
 endmodule

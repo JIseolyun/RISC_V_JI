@@ -1,0 +1,3 @@
+Vivado Simulator 2020.2
+Time resolution is 1 ps
+$finish called at time : 50 ns : File "D:/working/RISC_V_JI/RISC_V_JI.srcs/sim_1/new/tb_RV32I.sv" Line 15
